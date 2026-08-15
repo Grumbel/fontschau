@@ -22,4 +22,16 @@ add_executable(fontschau
 
 target_link_libraries(fontschau PRIVATE Qt6::Widgets)
 
-install(TARGETS fontschau DESTINATION bin)
+include(GNUInstallDirs)
+
+install(TARGETS fontschau
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES data/applications/fontschau.desktop
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
+)
+
+install(FILES data/icons/hicolor/scalable/apps/fontschau.svg
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/apps
+)
