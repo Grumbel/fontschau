@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Ingo Ruhnke <grumbel@gmail.com>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Fontschau
+GenericName=Font Viewer
+Comment=Browse and preview installed fonts
+Exec=fontschau
+Icon=fontschau
+Terminal=false
+Categories=Utility;Graphics;Viewer;
+Keywords=font;typeface;typography;preview;
+StartupNotify=true
