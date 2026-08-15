@@ -10,7 +10,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
 
 add_executable(fontschau
     src/main.cpp
@@ -18,9 +18,10 @@ add_executable(fontschau
     src/mainwindow.h
     src/fontpreview.cpp
     src/fontpreview.h
+    src/resources.qrc
 )
 
-target_link_libraries(fontschau PRIVATE Qt6::Widgets)
+target_link_libraries(fontschau PRIVATE Qt6::Widgets Qt6::Svg)
 
 include(GNUInstallDirs)
 

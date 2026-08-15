@@ -25,6 +25,7 @@
 
           buildInputs = with pkgs; [
             qt6.qtbase
+            qt6.qtsvg
           ];
 
           cmakeFlags = [
@@ -46,6 +47,7 @@
           packages = with pkgs; [
             cmake
             qt6.qtbase
+            qt6.qtsvg
             qt6.qttools
             gdb
           ];
