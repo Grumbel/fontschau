@@ -20,7 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::setupUi()
 {
-    setWindowTitle(tr("Fontora – Font Viewer"));
+    setWindowTitle(tr("Fontschau – Font Viewer"));
     resize(1100, 700);
 
     // Menu bar
@@ -30,7 +30,7 @@ void MainWindow::setupUi()
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
 
     auto *helpMenu = menuBar()->addMenu(tr("&Help"));
-    auto *aboutAction = helpMenu->addAction(tr("&About Fontora"));
+    auto *aboutAction = helpMenu->addAction(tr("&About Fontschau"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::about);
 
     // Central widget with splitter
@@ -318,8 +318,8 @@ void MainWindow::updatePreview()
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, tr("About Fontora"),
-                       tr("<h3>Fontora</h3>"
+    QMessageBox::about(this, tr("About Fontschau"),
+                       tr("<h3>Fontschau</h3>"
                           "<p>A simple font viewer built with Qt6.</p>"
                           "<p>Version %1</p>"
                           "<p>Browse installed fonts, adjust size and style, "

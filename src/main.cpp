@@ -4,9 +4,9 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    QApplication::setApplicationName("Fontora");
+    QApplication::setApplicationName("Fontschau");
     QApplication::setApplicationVersion("0.1.0");
-    QApplication::setOrganizationName("Fontora");
+    QApplication::setOrganizationName("Fontschau");
 
     MainWindow window;
     window.show();
