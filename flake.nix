@@ -1,5 +1,5 @@
 {
-  description = "Fontora – a simple Qt6 font viewer";
+  description = "Fontschau – a simple Qt6 font viewer";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -13,7 +13,7 @@
       in
       {
         packages.default = pkgs.stdenv.mkDerivation {
-          pname = "fontora";
+          pname = "fontschau";
           version = "0.1.0";
 
           src = ./.;
@@ -33,11 +33,11 @@
 
           meta = with pkgs.lib; {
             description = "A simple font viewer built with Qt6";
-            homepage = "https://github.com/grumbel/fontora";
+            homepage = "https://github.com/grumbel/fontschau";
             license = licenses.gpl3Plus;
             maintainers = [ ];
             platforms = platforms.linux;
-            mainProgram = "fontora";
+            mainProgram = "fontschau";
           };
         };
 

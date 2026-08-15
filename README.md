@@ -1,8 +1,8 @@
-# Fontora
+# Fontschau
 
 A simple font viewer for Linux, written in C++ with Qt6.
 
-Fontora is a lightweight alternative to GNOME Font Viewer. It lets you browse the fonts installed on your system, preview them at different sizes and styles, and type your own sample text.
+Fontschau is a lightweight alternative to GNOME Font Viewer. It lets you browse the fonts installed on your system, preview them at different sizes and styles, and type your own sample text.
 
 ## Features
 
@@ -22,7 +22,7 @@ Fontora is a lightweight alternative to GNOME Font Viewer. It lets you browse th
 
 ```bash
 nix build
-./result/bin/fontora
+./result/bin/fontschau
 ```
 
 Or enter a development shell:
@@ -31,7 +31,7 @@ Or enter a development shell:
 nix develop
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-./build/fontora
+./build/fontschau
 ```
 
 ### With CMake + system Qt6
@@ -39,7 +39,7 @@ cmake --build build
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
-./build/fontora
+./build/fontschau
 ```
 
 Requirements: Qt 6 (Widgets), CMake ≥ 3.16, C++17 compiler.
