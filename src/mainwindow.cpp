@@ -12,6 +12,7 @@
 #include <QFontInfo>
 #include <QScrollArea>
 #include <QFrame>
+#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -24,6 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
 void MainWindow::setupUi()
 {
     setWindowTitle(tr("Fontschau – Font Viewer"));
+    setWindowIcon(QIcon(QStringLiteral(":/icons/fontschau.svg")));
     resize(1100, 700);
 
     // Menu bar

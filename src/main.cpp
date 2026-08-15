@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include <QApplication>
+#include <QIcon>
+
 #include "mainwindow.h"
 
 int main(int argc, char *argv[])
@@ -10,6 +12,7 @@ int main(int argc, char *argv[])
     QApplication::setApplicationName("Fontschau");
     QApplication::setApplicationVersion("0.1.0");
     QApplication::setOrganizationName("Fontschau");
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/fontschau.svg")));
 
     MainWindow window;
     window.show();
