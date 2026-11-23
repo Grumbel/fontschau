@@ -8,14 +8,17 @@
 #include <QDoubleSpinBox>
 #include <QFontDatabase>
 #include <QFontInfo>
+#include <QEvent>
 #include <QFrame>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSignalBlocker>
+#include <QSizePolicy>
 #include <QSlider>
 #include <QSpinBox>
 #include <QVBoxLayout>
@@ -34,28 +37,38 @@ void selectChoice(QComboBox *combo, int value)
 }
 
 PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
-    : QWidget(parent), m_title(title)
+    : QWidget(parent)
 {
     setObjectName(closable ? QStringLiteral("paneB") : QStringLiteral("paneA"));
     auto *layout = new QVBoxLayout(this);
     layout->setContentsMargins(3, 3, 3, 3);
     layout->setSpacing(5);
 
+    // Keep controls compact. In comparison mode both panes reserve the same
+    // control-area height so their scrollable previews share an exact top edge.
+    m_controls = new QWidget(this);
+    m_controls->setObjectName(QStringLiteral("paneControls"));
+    m_controls->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    auto *controlsLayout = new QVBoxLayout(m_controls);
+    controlsLayout->setContentsMargins(0, 0, 0, 0);
+    controlsLayout->setSpacing(5);
+    layout->addWidget(m_controls);
+
     auto *header = new QHBoxLayout;
-    m_activate = new QPushButton(title);
-    m_activate->setCheckable(true);
-    m_activate->setToolTip(tr("Select this pane for the font browser"));
-    connect(m_activate, &QPushButton::clicked, this, [this] { emit activated(this); });
-    header->addWidget(m_activate);
+    m_heading = new QLabel(title);
+    m_heading->setObjectName(QStringLiteral("paneHeading"));
+    m_heading->setToolTip(tr("Click the preview or settings to select this pane for the font browser"));
+    header->addWidget(m_heading);
     header->addStretch();
     if (closable) {
         auto *close = new QPushButton(tr("Close pane"));
         connect(close, &QPushButton::clicked, this, [this] { emit closeRequested(this); });
         header->addWidget(close);
     }
-    layout->addLayout(header);
+    controlsLayout->addLayout(header);
 
     auto *properties = new QGroupBox(tr("Font"));
+    properties->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *fontGrid = new QGridLayout(properties);
     fontGrid->addWidget(new QLabel(tr("Style:")), 0, 0);
     m_styleCombo = new QComboBox;
@@ -82,10 +95,11 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     for (QCheckBox *check : {m_bold, m_italic, m_underline, m_strike})
         styles->addWidget(check);
     fontGrid->addLayout(styles, 2, 0, 1, 4);
-    layout->addWidget(properties);
+    controlsLayout->addWidget(properties);
 
     auto *render = new QGroupBox(tr("Rendering"));
     render->setObjectName(QStringLiteral("renderingGroup"));
+    render->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *renderGrid = new QGridLayout(render);
     renderGrid->addWidget(new QLabel(tr("Engine:")), 0, 0);
     m_backend = new QComboBox;
@@ -96,6 +110,9 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     renderGrid->addWidget(new QLabel(tr("Antialias:")), 1, 0);
     m_antialias = new QComboBox;
     m_antialias->setObjectName(QStringLiteral("antialiasCombo"));
+    // Long option names should not force a narrow comparison pane wider.
+    m_antialias->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_antialias->setMinimumContentsLength(11);
     renderGrid->addWidget(m_antialias, 1, 1);
     renderGrid->addWidget(new QLabel(tr("Hinting:")), 2, 0);
     m_hinting = new QComboBox;
@@ -106,6 +123,7 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     renderGrid->addWidget(m_hinting, 2, 1);
     m_advanced = new QGroupBox(tr("FreeType options"));
     m_advanced->setObjectName(QStringLiteral("freetypeGroup"));
+    m_advanced->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     auto *advancedGrid = new QGridLayout(m_advanced);
     advancedGrid->addWidget(new QLabel(tr("LCD filter:")), 0, 0);
     m_filter = new QComboBox;
@@ -135,12 +153,16 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     // Keep the common rendering settings and FreeType-specific settings on
     // the same row, including when the preview is split into two panes.
     auto *renderingRow = new QHBoxLayout;
-    renderingRow->addWidget(render, 1);
-    renderingRow->addWidget(m_advanced, 1);
-    layout->addLayout(renderingRow);
+    renderingRow->addWidget(render, 0, Qt::AlignTop);
+    renderingRow->addWidget(m_advanced, 0, Qt::AlignTop);
+    renderingRow->addStretch(1); // Leave free width; do not stretch the groups.
+    controlsLayout->addLayout(renderingRow);
+    controlsLayout->addStretch(1); // Extra alignment space stays BELOW the settings.
 
     m_preview = new FontPreview;
     auto *scroll = new QScrollArea;
+    scroll->setObjectName(QStringLiteral("previewScroll"));
+    m_preview->setObjectName(QStringLiteral("previewSurface"));
     scroll->setWidget(m_preview);
     scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::StyledPanel);
@@ -182,6 +204,11 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     connect(m_gamma, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, &PreviewPane::updatePreview);
     rebuildAntialiasOptions();
     updateBackend(0);
+
+    // Observe clicks on the actual controls/viewport while allowing their
+    // original mouse behavior (dragging, selecting text, etc.) to continue.
+    for (QWidget *child : findChildren<QWidget *>())
+        child->installEventFilter(this);
 }
 
 void PreviewPane::setFontFamily(const QString &family, const QString &file)
@@ -211,9 +238,40 @@ void PreviewPane::setSampleText(const QString &text)
 
 void PreviewPane::setActive(bool active)
 {
-    m_activate->setChecked(active);
-    m_activate->setText(active ? tr("%1 (selected)").arg(m_title)
-                               : tr("%1 (click to select)").arg(m_title));
+    m_active = active;
+    QFont headingFont = m_heading->font();
+    headingFont.setBold(active);
+    m_heading->setFont(headingFont);
+}
+
+int PreviewPane::naturalControlsHeight() const
+{
+    return m_controls->layout()->sizeHint().height();
+}
+
+void PreviewPane::setAlignedControlsHeight(int height)
+{
+    if (height < 0) {
+        m_controls->setMinimumHeight(0);
+        m_controls->setMaximumHeight(QWIDGETSIZE_MAX);
+    } else if (m_controls->minimumHeight() != height || m_controls->maximumHeight() != height) {
+        m_controls->setFixedHeight(height);
+    }
+}
+
+bool PreviewPane::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonPress &&
+        static_cast<QMouseEvent *>(event)->button() == Qt::LeftButton && !m_active)
+        emit activated(this);
+    return QWidget::eventFilter(watched, event);
+}
+
+void PreviewPane::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && !m_active)
+        emit activated(this);
+    QWidget::mousePressEvent(event);
 }
 
 void PreviewPane::setBackend(RenderBackend backend)
@@ -228,6 +286,7 @@ void PreviewPane::updateBackend(int)
     m_updating = false;
     const bool freeType = static_cast<RenderBackend>(m_backend->currentData().toInt()) == RenderBackend::FreeType;
     m_advanced->setVisible(freeType);
+    emit controlsHeightChanged();
     m_filter->setEnabled(freeType && int(m_antialias->currentData().toInt()) >= int(AntialiasMode::LcdRGB));
     updatePreview();
 }

@@ -45,9 +45,11 @@ status. The desktop launcher can open font files via the file manager.
 ### Comparing renderers and settings
 
 Choose **View → Split Preview** (`Ctrl+\`) to create a second pane. Each
-pane has its own settings; clicking the pane's header selects which pane the
-left-hand font browser controls. The sample text is shared between panes to
-make differences easier to spot. Drag the splitter to adjust their widths;
+pane has its own settings; clicking its preview or any of its controls selects
+which pane the left-hand font browser controls, without a separate selection
+button. The previews start at the same height even when one pane uses Qt and
+the other shows more FreeType settings. The sample text is shared between panes
+to make differences easier to spot. Drag the splitter to adjust their widths;
 close pane B to return to the single preview. A newly split pane copies pane A's
 settings so comparisons start with identical configurations.
 

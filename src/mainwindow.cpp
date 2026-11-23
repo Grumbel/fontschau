@@ -23,6 +23,8 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setupUi();
@@ -107,6 +109,7 @@ void MainWindow::setupUi()
     outer->setSizes({250, 950});
 
     connect(m_paneA, &PreviewPane::activated, this, &MainWindow::activatePane);
+    connect(m_paneA, &PreviewPane::controlsHeightChanged, this, &MainWindow::alignPanePreviews);
     connect(m_sampleEdit, &QTextEdit::textChanged, this, [this] {
         const QString text = m_sampleEdit->toPlainText();
         m_paneA->setSampleText(text);
@@ -167,6 +170,21 @@ void MainWindow::activatePane(PreviewPane *pane)
         m_fontList->setCurrentItem(items.first());
         m_fontList->scrollToItem(items.first());
     }
+    alignPanePreviews();
+}
+
+void MainWindow::alignPanePreviews()
+{
+    if (!m_paneB) {
+        m_paneA->setAlignedControlsHeight(-1);
+        return;
+    }
+    // Qt and FreeType display different amounts of configuration UI. Reserve
+    // the larger natural height on both sides to align the preview scroll areas.
+    const int height = std::max(m_paneA->naturalControlsHeight(),
+                                m_paneB->naturalControlsHeight());
+    m_paneA->setAlignedControlsHeight(height);
+    m_paneB->setAlignedControlsHeight(height);
 }
 
 void MainWindow::setSplitPreview(bool split)
@@ -178,6 +196,7 @@ void MainWindow::setSplitPreview(bool split)
         m_paneSplitter->addWidget(m_paneB);
         m_paneSplitter->setSizes({500, 500});
         connect(m_paneB, &PreviewPane::activated, this, &MainWindow::activatePane);
+        connect(m_paneB, &PreviewPane::controlsHeightChanged, this, &MainWindow::alignPanePreviews);
         connect(m_paneB, &PreviewPane::closeRequested, this,
                 [this] (PreviewPane *) { setSplitPreview(false); });
         activatePane(m_paneB);
@@ -189,6 +208,7 @@ void MainWindow::setSplitPreview(bool split)
         closing->setParent(nullptr); // Removes it from the splitter immediately.
         closing->deleteLater(); // Safe when invoked by the pane's own button.
     }
+    alignPanePreviews();
     if (m_splitAction && m_splitAction->isChecked() != split) {
         QSignalBlocker blocker(m_splitAction);
         m_splitAction->setChecked(split);

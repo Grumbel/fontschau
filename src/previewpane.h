@@ -11,8 +11,9 @@ class QCheckBox;
 class QComboBox;
 class QDoubleSpinBox;
 class QGroupBox;
+class QEvent;
+class QMouseEvent;
 class QLabel;
-class QPushButton;
 class QSlider;
 class QSpinBox;
 
@@ -30,10 +31,18 @@ public:
     void setActive(bool active);
     void setBackend(RenderBackend backend);
     void copyFrom(const PreviewPane &other);
+    bool isActive() const { return m_active; }
+    int naturalControlsHeight() const;
+    void setAlignedControlsHeight(int height); // -1 restores natural height.
 
 signals:
     void activated(PreviewPane *pane);
     void closeRequested(PreviewPane *pane);
+    void controlsHeightChanged();
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     void updatePreview();
@@ -41,15 +50,16 @@ private:
     void rebuildAntialiasOptions();
     RenderConfig renderConfig() const;
 
-    QString m_title;
     QString m_family;
     QString m_file;
     QString m_style;
     bool m_updating = false;
+    bool m_active = false;
     AntialiasMode m_qtAntialias = AntialiasMode::System;
     AntialiasMode m_ftAntialias = AntialiasMode::Gray;
 
-    QPushButton *m_activate = nullptr;
+    QWidget *m_controls = nullptr;
+    QLabel *m_heading = nullptr;
     QComboBox *m_styleCombo = nullptr;
     QSpinBox *m_size = nullptr;
     QSlider *m_sizeSlider = nullptr;

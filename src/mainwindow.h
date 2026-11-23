@@ -31,6 +31,7 @@ private:
     void onSearchTextChanged(const QString &text);
     void onFontSelected(QListWidgetItem *item);
     void activatePane(PreviewPane *pane);
+    void alignPanePreviews();
     void openFontFile();
     void about();
 
