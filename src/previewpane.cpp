@@ -85,6 +85,7 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     layout->addWidget(properties);
 
     auto *render = new QGroupBox(tr("Rendering"));
+    render->setObjectName(QStringLiteral("renderingGroup"));
     auto *renderGrid = new QGridLayout(render);
     renderGrid->addWidget(new QLabel(tr("Engine:")), 0, 0);
     m_backend = new QComboBox;
@@ -103,9 +104,8 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     addChoice(m_hinting, tr("Light"), HintMode::Light);
     addChoice(m_hinting, tr("Full"), HintMode::Full);
     renderGrid->addWidget(m_hinting, 2, 1);
-    layout->addWidget(render);
-
     m_advanced = new QGroupBox(tr("FreeType options"));
+    m_advanced->setObjectName(QStringLiteral("freetypeGroup"));
     auto *advancedGrid = new QGridLayout(m_advanced);
     advancedGrid->addWidget(new QLabel(tr("LCD filter:")), 0, 0);
     m_filter = new QComboBox;
@@ -115,7 +115,7 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     addChoice(m_filter, tr("Legacy"), LcdFilter::Legacy);
     m_filter->setCurrentIndex(1);
     advancedGrid->addWidget(m_filter, 0, 1);
-    m_darkening = new QCheckBox(tr("Stem darkening (if supported by driver)"));
+    m_darkening = new QCheckBox(tr("Stem darkening"));
     m_darkening->setToolTip(tr("FreeType driver property; not supported by all fonts or drivers."));
     advancedGrid->addWidget(m_darkening, 1, 0, 1, 2);
     advancedGrid->addWidget(new QLabel(tr("Extra embolden:")), 2, 0);
@@ -132,7 +132,12 @@ PreviewPane::PreviewPane(const QString &title, bool closable, QWidget *parent)
     m_gamma->setValue(1.0);
     m_gamma->setToolTip(tr("Exponent applied to glyph coverage during compositing (1.0 = linear coverage)."));
     advancedGrid->addWidget(m_gamma, 3, 1);
-    layout->addWidget(m_advanced);
+    // Keep the common rendering settings and FreeType-specific settings on
+    // the same row, including when the preview is split into two panes.
+    auto *renderingRow = new QHBoxLayout;
+    renderingRow->addWidget(render, 1);
+    renderingRow->addWidget(m_advanced, 1);
+    layout->addLayout(renderingRow);
 
     m_preview = new FontPreview;
     auto *scroll = new QScrollArea;

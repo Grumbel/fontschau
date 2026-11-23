@@ -5,6 +5,7 @@
 
 #include <QApplication>
 #include <QComboBox>
+#include <QGroupBox>
 #include <QSplitter>
 #include <QSpinBox>
 
@@ -17,16 +18,28 @@ int main(int argc, char **argv)
     window.setPrimaryBackend(RenderBackend::FreeType);
     window.show();
     app.processEvents();
+    auto *renderingGroup = window.findChild<QGroupBox *>(QStringLiteral("renderingGroup"));
+    auto *freeTypeGroup = window.findChild<QGroupBox *>(QStringLiteral("freetypeGroup"));
+    if (!renderingGroup || !freeTypeGroup || !freeTypeGroup->isVisible() ||
+        freeTypeGroup->x() <= renderingGroup->x() ||
+        freeTypeGroup->y() != renderingGroup->y()) return 9;
     window.setSplitPreview(true);
     if (splitter->count() != 2) return 2;
     auto *a = window.findChild<PreviewPane *>(QStringLiteral("paneA"));
     auto *b = window.findChild<PreviewPane *>(QStringLiteral("paneB"));
     if (!a || !b || a->fontFamily() != b->fontFamily()) return 3;
+    app.processEvents();
+    auto *renderingB = b->findChild<QGroupBox *>(QStringLiteral("renderingGroup"));
+    auto *freeTypeB = b->findChild<QGroupBox *>(QStringLiteral("freetypeGroup"));
+    if (!renderingB || !freeTypeB || !freeTypeB->isVisible() ||
+        freeTypeB->x() <= renderingB->x() ||
+        freeTypeB->y() != renderingB->y()) return 10;
     auto *rendererA = a->findChild<QComboBox *>(QStringLiteral("rendererCombo"));
     auto *rendererB = b->findChild<QComboBox *>(QStringLiteral("rendererCombo"));
     if (!rendererA || !rendererB || rendererA->currentText() != QStringLiteral("FreeType"))
         return 4;
     rendererB->setCurrentIndex(0); // Changing B must not change A.
+    if (!freeTypeB->isHidden()) return 11;
     if (rendererA->currentText() != QStringLiteral("FreeType") ||
         rendererB->currentText() != QStringLiteral("Qt")) return 5;
     auto *sizeA = a->findChild<QSpinBox *>(QStringLiteral("sizeSpin"));
