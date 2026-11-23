@@ -93,7 +93,9 @@ void MainWindow::setupUi()
         tr("The quick brown fox jumps over the lazy dog.\n"
            "ABCDEFGHIJKLMNOPQRSTUVWXYZ\n"
            "abcdefghijklmnopqrstuvwxyz\n"
-           "0123456789 !@#$%^&*()"));
+           "0123456789 !@#$%^&*()\n"
+           "Fünf müde Füchse hüpfen über zwölf süße Äpfel. Ää Öö Üü ß ẞ\n"
+           "😀 😃 😎 🥳 🤖 🦊 🌍 🚀 🎨 🎉 🍕"));
     sampleLayout->addWidget(m_sampleEdit);
     rightLayout->addWidget(sampleGroup);
 

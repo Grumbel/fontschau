@@ -12,6 +12,7 @@
 #include <QScrollArea>
 #include <QSplitter>
 #include <QSpinBox>
+#include <QTextEdit>
 
 namespace {
 void click(QWidget *widget)
@@ -41,6 +42,11 @@ int main(int argc, char **argv)
     MainWindow window;
     auto *splitter = window.findChild<QSplitter *>(QStringLiteral("previewSplitter"));
     if (!splitter || splitter->count() != 1) return 1;
+    // Default samples exercise German accents and emoji in both renderers.
+    auto *sampleEdit = window.findChild<QTextEdit *>();
+    if (!sampleEdit ||
+        !sampleEdit->toPlainText().contains(QStringLiteral("Ää Öö Üü ß ẞ")) ||
+        !sampleEdit->toPlainText().contains(QStringLiteral("😀 😃 😎"))) return 21;
     window.setPrimaryBackend(RenderBackend::FreeType);
     window.show();
     app.processEvents();
