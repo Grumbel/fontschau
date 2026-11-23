@@ -72,7 +72,8 @@ void FontPreview::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.setRenderHint(QPainter::TextAntialiasing);
+    // Text antialiasing is controlled by QFont::StyleStrategy; setting the
+    // painter hint unconditionally would conflict with the UI preference.
     painter.setRenderHint(QPainter::Antialiasing);
 
     const QPalette pal = palette();

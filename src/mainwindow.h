@@ -29,6 +29,11 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override = default;
 
+    // Adds a private/application font to Qt and selects its first family.
+    // Reports errors to the caller rather than displaying a dialog, so the
+    // same method works for both File > Open and command-line startup.
+    bool loadFontFile(const QString &filename, QString *errorMessage = nullptr);
+
 private slots:
     void onFontSelected(QListWidgetItem *item);
     void onSearchTextChanged(const QString &text);
@@ -41,11 +46,13 @@ private slots:
     void onStrikeoutToggled(bool checked);
     void updatePreview();
     void populateFonts();
+    void openFontFile();
     void about();
 
 private:
     void setupUi();
     void applyFontSettings();
+    QFont selectedFont() const;
 
     QFontDatabase m_fontDb;
     QString m_currentFamily;
@@ -61,6 +68,9 @@ private:
     QCheckBox *m_italicCheck = nullptr;
     QCheckBox *m_underlineCheck = nullptr;
     QCheckBox *m_strikeoutCheck = nullptr;
+    QComboBox *m_antialiasCombo = nullptr;
+    QComboBox *m_hintingCombo = nullptr;
+    QCheckBox *m_subpixelCheck = nullptr;
     QTextEdit *m_sampleEdit = nullptr;
     FontPreview *m_preview = nullptr;
     QLabel *m_infoLabel = nullptr;

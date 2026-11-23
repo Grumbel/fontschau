@@ -10,11 +10,17 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
+        versionBase = pkgs.lib.strings.removeSuffix "\n" (builtins.readFile ./VERSION);
+        gitRev = self.shortRev or self.dirtyShortRev or "dirty";
+        version = if pkgs.lib.strings.hasInfix "-dev" versionBase then
+          "${versionBase}.${toString (self.revCount or 0)}+g${gitRev}"
+        else
+          versionBase;
       in
       {
         packages.default = pkgs.stdenv.mkDerivation {
           pname = "fontschau";
-          version = "0.1.0";
+          inherit version;
 
           src = ./.;
 
@@ -30,6 +36,7 @@
 
           cmakeFlags = [
             "-DCMAKE_BUILD_TYPE=Release"
+            "-DPROJECT_VERSION_FULL=${version}"
           ];
 
           meta = with pkgs.lib; {

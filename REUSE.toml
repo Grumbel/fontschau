@@ -3,6 +3,8 @@ version = 1
 [[annotations]]
 path = [
     "README.md",
+    "AGENTS.md",
+    "VERSION",
     "flake.lock",
     "flake.nix",
     ".gitignore",

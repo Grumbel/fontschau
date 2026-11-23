@@ -13,6 +13,8 @@
 #include <QScrollArea>
 #include <QFrame>
 #include <QIcon>
+#include <QFileDialog>
+#include <QFileInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -30,6 +32,10 @@ void MainWindow::setupUi()
 
     // Menu bar
     auto *fileMenu = menuBar()->addMenu(tr("&File"));
+    auto *openFontAction = fileMenu->addAction(tr("&Open Font…"));
+    openFontAction->setShortcut(QKeySequence::Open);
+    connect(openFontAction, &QAction::triggered, this, &MainWindow::openFontFile);
+    fileMenu->addSeparator();
     auto *quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcut(QKeySequence::Quit);
     connect(quitAction, &QAction::triggered, this, &QWidget::close);
@@ -126,6 +132,39 @@ void MainWindow::setupUi()
 
     rightLayout->addWidget(controlsGroup);
 
+    // Public Qt font rendering preferences. More advanced FreeType settings
+    // (LCD filter, stem darkening, gamma) aren't exposed through Qt's API.
+    auto *renderGroup = new QGroupBox(tr("Rendering"));
+    auto *renderLayout = new QHBoxLayout(renderGroup);
+    renderLayout->addWidget(new QLabel(tr("Antialiasing:")));
+    m_antialiasCombo = new QComboBox;
+    m_antialiasCombo->addItem(tr("System default"), int(QFont::PreferDefault));
+    m_antialiasCombo->addItem(tr("Prefer on"), int(QFont::PreferAntialias));
+    m_antialiasCombo->addItem(tr("Off"), int(QFont::NoAntialias));
+    m_antialiasCombo->setToolTip(tr("Antialiasing is a preference; Qt and the platform may override it."));
+    connect(m_antialiasCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::updatePreview);
+    renderLayout->addWidget(m_antialiasCombo);
+
+    renderLayout->addWidget(new QLabel(tr("Hinting:")));
+    m_hintingCombo = new QComboBox;
+    m_hintingCombo->addItem(tr("System default"), int(QFont::PreferDefaultHinting));
+    m_hintingCombo->addItem(tr("None"), int(QFont::PreferNoHinting));
+    m_hintingCombo->addItem(tr("Vertical (light)"), int(QFont::PreferVerticalHinting));
+    m_hintingCombo->addItem(tr("Full"), int(QFont::PreferFullHinting));
+    m_hintingCombo->setToolTip(tr("Qt font hinting preference (platform support varies)."));
+    connect(m_hintingCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::updatePreview);
+    renderLayout->addWidget(m_hintingCombo);
+
+    m_subpixelCheck = new QCheckBox(tr("Allow subpixel AA"));
+    m_subpixelCheck->setChecked(true);
+    m_subpixelCheck->setToolTip(tr("Disable subpixel antialiasing if possible; enabling this does not force it on."));
+    connect(m_subpixelCheck, &QCheckBox::toggled, this, &MainWindow::updatePreview);
+    renderLayout->addWidget(m_subpixelCheck);
+    renderLayout->addStretch();
+    rightLayout->addWidget(renderGroup);
+
     // Sample text input
     auto *sampleGroup = new QGroupBox(tr("Sample Text"));
     auto *sampleLayout = new QVBoxLayout(sampleGroup);
@@ -181,6 +220,55 @@ void MainWindow::populateFonts()
     if (m_fontList->count() > 0) {
         m_fontList->setCurrentRow(0);
     }
+}
+
+bool MainWindow::loadFontFile(const QString &filename, QString *errorMessage)
+{
+    const QFileInfo file(filename);
+    if (!file.isFile() || !file.isReadable()) {
+        if (errorMessage)
+            *errorMessage = tr("Cannot read font file: %1").arg(filename);
+        return false;
+    }
+
+    const int fontId = QFontDatabase::addApplicationFont(file.absoluteFilePath());
+    if (fontId < 0) {
+        if (errorMessage)
+            *errorMessage = tr("Unsupported or invalid font file: %1").arg(filename);
+        return false;
+    }
+
+    const QStringList families = QFontDatabase::applicationFontFamilies(fontId);
+    if (families.isEmpty()) {
+        QFontDatabase::removeApplicationFont(fontId);
+        if (errorMessage)
+            *errorMessage = tr("No font families found in: %1").arg(filename);
+        return false;
+    }
+
+    populateFonts();
+    m_searchEdit->clear();
+    const auto matchingItems = m_fontList->findItems(families.first(), Qt::MatchExactly);
+    if (!matchingItems.isEmpty()) {
+        m_fontList->setCurrentItem(matchingItems.first());
+        m_fontList->scrollToItem(matchingItems.first());
+    }
+    statusBar()->showMessage(tr("Loaded %1 (%2)")
+                                 .arg(file.fileName(), families.join(QStringLiteral(", "))));
+    return true;
+}
+
+void MainWindow::openFontFile()
+{
+    const QString filename = QFileDialog::getOpenFileName(
+        this, tr("Open Font"), QString(),
+        tr("Font files (*.ttf *.otf *.ttc *.otc);;All files (*)"));
+    if (filename.isEmpty())
+        return;
+
+    QString error;
+    if (!loadFontFile(filename, &error))
+        QMessageBox::warning(this, tr("Cannot Open Font"), error);
 }
 
 void MainWindow::onSearchTextChanged(const QString &text)
@@ -282,15 +370,27 @@ void MainWindow::onStrikeoutToggled(bool checked)
     updatePreview();
 }
 
-void MainWindow::applyFontSettings()
+QFont MainWindow::selectedFont() const
 {
     QFont font = m_fontDb.font(m_currentFamily, m_currentStyle, m_sizeSpin->value());
-    // Override with checkbox state so the user can force styles
+    // Override with checkbox state so the user can force styles.
     font.setBold(m_boldCheck->isChecked());
     font.setItalic(m_italicCheck->isChecked());
     font.setUnderline(m_underlineCheck->isChecked());
     font.setStrikeOut(m_strikeoutCheck->isChecked());
-    m_preview->setPreviewFont(font);
+    font.setHintingPreference(static_cast<QFont::HintingPreference>(
+        m_hintingCombo->currentData().toInt()));
+
+    int strategy = m_antialiasCombo->currentData().toInt();
+    if (!m_subpixelCheck->isChecked())
+        strategy |= int(QFont::NoSubpixelAntialias);
+    font.setStyleStrategy(static_cast<QFont::StyleStrategy>(strategy));
+    return font;
+}
+
+void MainWindow::applyFontSettings()
+{
+    m_preview->setPreviewFont(selectedFont());
     m_preview->setSampleText(m_sampleEdit->toPlainText());
 }
 
@@ -302,8 +402,7 @@ void MainWindow::updatePreview()
     applyFontSettings();
 
     // Build info string
-    QFont font = m_fontDb.font(m_currentFamily, m_currentStyle, m_sizeSpin->value());
-    QFontInfo info(font);
+    QFontInfo info(selectedFont());
 
     QStringList lines;
     lines << tr("<b>Family:</b> %1").arg(m_currentFamily.toHtmlEscaped());
