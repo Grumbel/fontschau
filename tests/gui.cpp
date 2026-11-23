@@ -42,11 +42,18 @@ int main(int argc, char **argv)
     MainWindow window;
     auto *splitter = window.findChild<QSplitter *>(QStringLiteral("previewSplitter"));
     if (!splitter || splitter->count() != 1) return 1;
-    // Default samples exercise German accents and emoji in both renderers.
+    // Default samples exercise Latin diacritics, several Cyrillic alphabets,
+    // and emoji in both renderers (even if the chosen face lacks some glyphs).
     auto *sampleEdit = window.findChild<QTextEdit *>();
-    if (!sampleEdit ||
-        !sampleEdit->toPlainText().contains(QStringLiteral("Ää Öö Üü ß ẞ")) ||
-        !sampleEdit->toPlainText().contains(QStringLiteral("😀 😃 😎"))) return 21;
+    if (!sampleEdit) return 21;
+    const QString defaultSample = sampleEdit->toPlainText();
+    if (!defaultSample.contains(QStringLiteral("Ää Öö Üü ß ẞ")) ||
+        !defaultSample.contains(QStringLiteral("Åå Ææ")) ||
+        !defaultSample.contains(QStringLiteral("Ąą Ćć Čč")) ||
+        !defaultSample.contains(QStringLiteral("Șș Țț Őő Űű")) ||
+        !defaultSample.contains(QStringLiteral("Съешь ещё этих мягких")) ||
+        !defaultSample.contains(QStringLiteral("Її Єє Іі Ґґ")) ||
+        !defaultSample.contains(QStringLiteral("😀 😃 😎"))) return 21;
     window.setPrimaryBackend(RenderBackend::FreeType);
     window.show();
     app.processEvents();

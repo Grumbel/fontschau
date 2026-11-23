@@ -95,6 +95,11 @@ void MainWindow::setupUi()
            "abcdefghijklmnopqrstuvwxyz\n"
            "0123456789 !@#$%^&*()\n"
            "Fünf müde Füchse hüpfen über zwölf süße Äpfel. Ää Öö Üü ß ẞ\n"
+           "Western/Nordic: Àà Áá Ââ Ãã Åå Ææ Çç Èè Éé Êê Ëë Íí Ññ Øø Œœ Óó Úú Ýý Ðð Þþ\n"
+           "Central/Eastern: Ąą Ćć Čč Ďď Ęę Ěě Łł Ńń Řř Śś Šš Ťť Ůů Źź Żż Žž\n"
+           "Other accents: Ăă Șș Țț Őő Űű Ğğ İı Şş Đđ Āā Ēē Īī Ūū\n"
+           "Cyrillic: Съешь ещё этих мягких французских булок, да выпей чаю.\n"
+           "Other Cyrillic: Її Єє Іі Ґґ Ўў Ђђ Јј Љљ Њњ Ћћ Џџ\n"
            "😀 😃 😎 🥳 🤖 🦊 🌍 🚀 🎨 🎉 🍕"));
     sampleLayout->addWidget(m_sampleEdit);
     rightLayout->addWidget(sampleGroup);

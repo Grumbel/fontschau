@@ -15,7 +15,7 @@ Fontschau is a lightweight alternative to GNOME Font Viewer. It lets you browse 
 - Select available styles (Regular, Bold, Italic, …)
 - Adjustable point size (spinbox + slider)
 - Bold / Italic / Underline / Strikeout toggles
-- Editable multi-line sample text
+- Editable multi-line sample text with European Latin accents, Cyrillic and emoji examples
 - Automatic multi-size pangram preview
 - Basic font information (family, style, pixel size, Qt exact-match status)
 - Switch each preview independently between Qt text rendering and direct FreeType rendering
