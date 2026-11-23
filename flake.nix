@@ -26,12 +26,15 @@
 
           nativeBuildInputs = with pkgs; [
             cmake
+            pkg-config
             qt6.wrapQtAppsHook
           ];
 
           buildInputs = with pkgs; [
             qt6.qtbase
             qt6.qtsvg
+            freetype
+            fontconfig
           ];
 
           cmakeFlags = [
@@ -55,6 +58,8 @@
             cmake
             qt6.qtbase
             qt6.qtsvg
+            freetype
+            fontconfig
             qt6.qttools
             gdb
           ];

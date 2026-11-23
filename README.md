@@ -1,6 +1,7 @@
 # Fontschau
 
-A simple font viewer for Linux, written in C++ with Qt6.
+A font viewer and rendering comparison tool for Linux, written in C++ with Qt6,
+FreeType and Fontconfig.
 
 Fontschau is a lightweight alternative to GNOME Font Viewer. It lets you browse the fonts installed on your system, preview them at different sizes and styles, and type your own sample text.
 
@@ -16,8 +17,13 @@ Fontschau is a lightweight alternative to GNOME Font Viewer. It lets you browse 
 - Bold / Italic / Underline / Strikeout toggles
 - Editable multi-line sample text
 - Automatic multi-size pangram preview
-- Basic font information (family, style, weight, exact match, …)
-- Qt-supported rendering preferences: antialiasing, hinting (default/none/vertical/full), and allowing/disabling subpixel antialiasing
+- Basic font information (family, style, pixel size, Qt exact-match status)
+- Switch each preview independently between Qt text rendering and direct FreeType rendering
+- FreeType: grayscale, monochrome, RGB/BGR and vertical LCD subpixel rendering;
+  hinting, LCD filters, driver stem darkening, synthetic emboldening, coverage gamma
+- Qt: platform-dependent antialiasing/subpixel preferences and hinting
+- Split the preview into two independent comparison panes, each with its own
+  font, style, size, backend and rendering controls
 - Clean, straightforward Qt Widgets UI
 
 ## Usage
@@ -28,6 +34,7 @@ fontschau --version
 fontschau /path/to/font.ttf
 fontschau --font /path/to/font.otf
 fontschau -f /path/to/font.ttc
+fontschau --renderer freetype --split /path/to/font.ttf
 ```
 
 You can also use **File → Open Font** (Ctrl+O). Successfully loaded fonts
@@ -35,12 +42,41 @@ are added to the font-family list and selected automatically. An invalid or
 unreadable file supplied on the command line produces an error and nonzero exit
 status. The desktop launcher can open font files via the file manager.
 
-The rendering controls use public Qt APIs: `QFont::setHintingPreference()` and
-`QFont::setStyleStrategy()`. Their behavior depends on the platform and font
-backend; in particular, **Allow subpixel AA** does not force subpixel rendering
-when it is disabled by the system. Qt does not expose LCD filter tuning,
-FreeType stem darkening, or gamma adjustment through its public font API, so
-Fontschau does not attempt to modify these.
+### Comparing renderers and settings
+
+Choose **View → Split Preview** (`Ctrl+\`) to create a second pane. Each
+pane has its own settings; clicking the pane's header selects which pane the
+left-hand font browser controls. The sample text is shared between panes to
+make differences easier to spot. Drag the splitter to adjust their widths;
+close pane B to return to the single preview. A newly split pane copies pane A's
+settings so comparisons start with identical configurations.
+
+Each pane can select **Qt** or **FreeType** under **Rendering → Engine**.
+The Qt renderer uses `QFont` and `QPainter::drawText`, with platform-dependent
+antialiasing and hinting *preferences* (it cannot force the physical subpixel
+order, filtering, stem darkening or gamma).
+
+The FreeType renderer draws glyph bitmaps directly into an RGB image rather
+than going through Qt's font engine. Installed fonts are resolved with
+Fontconfig; fonts opened from disk are passed directly to FreeType, including
+collection face selection. The available controls are:
+
+- **Antialias:** grayscale, mono, horizontal RGB/BGR, vertical RGB/BGR.
+- **Hinting:** default, none, light, full.
+- **LCD filter:** none, default, light or legacy (only applies to LCD modes).
+- **Stem darkening:** FreeType driver property (may have no effect on some
+  drivers/fonts; distinct from the synthetic embolden control).
+- **Extra embolden:** synthetic outline thickening in pixels.
+- **Coverage gamma:** exponent applied to per-pixel coverage before
+  compositing; 1.0 is the neutral setting, not a monitor gamma setting.
+
+**Limitations:** The direct FreeType path is for close inspection of glyph
+rasterization, not a replacement for a shaped text layout engine. It implements
+basic Unicode character lookup and legacy kerning, but not HarfBuzz shaping,
+ligatures, bidirectional layout, or per-glyph font fallback. Consequently,
+complex scripts can differ markedly from Qt's rendering. LCD effects are best
+compared at 1:1 zoom on a known subpixel arrangement, and depend on FreeType
+build support; unavailable LCD raster modes fall back to grayscale.
 
 ## Version numbers
 
@@ -80,7 +116,8 @@ ctest --test-dir build --output-on-failure
 ./build/fontschau
 ```
 
-Requirements: Qt 6 (Widgets and Svg), CMake ≥ 3.16, C++17 compiler.
+Requirements: Qt 6 (Widgets and Svg), FreeType 2, Fontconfig, pkg-config,
+CMake ≥ 3.16, and a C++17 compiler.
 
 ## License
 

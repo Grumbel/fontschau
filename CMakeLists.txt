@@ -68,18 +68,30 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
+find_package(Freetype REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(Fontconfig REQUIRED IMPORTED_TARGET fontconfig)
 
-add_executable(fontschau
-    src/main.cpp
+add_library(fontschau_core STATIC
     src/mainwindow.cpp
     src/mainwindow.h
+    src/previewpane.cpp
+    src/previewpane.h
     src/fontpreview.cpp
     src/fontpreview.h
+    src/freetyperenderer.cpp
+    src/freetyperenderer.h
+    src/renderconfig.h
     src/resources.qrc
 )
+target_link_libraries(fontschau_core PUBLIC
+    Qt6::Widgets Qt6::Svg Freetype::Freetype PkgConfig::Fontconfig)
+target_include_directories(fontschau_core PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_BINARY_DIR}/generated")
 
-target_link_libraries(fontschau PRIVATE Qt6::Widgets Qt6::Svg)
-target_include_directories(fontschau PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated")
+add_executable(fontschau src/main.cpp)
+target_link_libraries(fontschau PRIVATE fontschau_core)
 
 include(GNUInstallDirs)
 
@@ -102,4 +114,13 @@ if(BUILD_TESTING)
         "-DVERSION=${PROJECT_VERSION_FULL}"
         "-DINVALID_FONT=${CMAKE_CURRENT_SOURCE_DIR}/README.md"
         -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/cli.cmake")
+    add_executable(freetype_test tests/freetype.cpp)
+    target_link_libraries(freetype_test PRIVATE fontschau_core)
+    add_test(NAME freetype_render COMMAND freetype_test)
+    set_tests_properties(freetype_render PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+
+    add_executable(gui_test tests/gui.cpp)
+    target_link_libraries(gui_test PRIVATE fontschau_core)
+    add_test(NAME comparison_panes COMMAND gui_test)
+    set_tests_properties(comparison_panes PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

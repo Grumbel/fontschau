@@ -22,6 +22,14 @@ int main(int argc, char *argv[])
         QStringLiteral("Load a font from a file (TTF, OTF, or collection)."),
         QStringLiteral("file"));
     parser.addOption(fontOption);
+    const QCommandLineOption rendererOption(
+        QStringLiteral("renderer"),
+        QStringLiteral("Initial renderer: qt or freetype (default: qt)."),
+        QStringLiteral("engine"), QStringLiteral("qt"));
+    parser.addOption(rendererOption);
+    const QCommandLineOption splitOption(
+        QStringLiteral("split"), QStringLiteral("Open two comparison panes."));
+    parser.addOption(splitOption);
     parser.addPositionalArgument(
         QStringLiteral("font-file"),
         QStringLiteral("Font file to load at startup (alternative to --font)."),
@@ -61,7 +69,15 @@ int main(int argc, char *argv[])
     const QString fontPath = parser.isSet(fontOption) ? parser.value(fontOption)
                                                        : positional.value(0);
 
+    const QString engine = parser.value(rendererOption).toLower();
+    if (engine != QLatin1String("qt") && engine != QLatin1String("freetype")) {
+        std::fprintf(stderr, "fontschau: --renderer must be qt or freetype\n");
+        return 2;
+    }
+
     MainWindow window;
+    if (engine == QLatin1String("freetype"))
+        window.setPrimaryBackend(RenderBackend::FreeType);
     if (!fontPath.isEmpty()) {
         QString error;
         if (!window.loadFontFile(fontPath, &error)) {
@@ -69,6 +85,8 @@ int main(int argc, char *argv[])
             return 1;
         }
     }
+    if (parser.isSet(splitOption))
+        window.setSplitPreview(true);
     window.show();
 
     return app.exec();

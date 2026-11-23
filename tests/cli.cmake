@@ -28,3 +28,9 @@ execute_process(COMMAND "${APP}" --font a.ttf b.ttf
 if(NOT status EQUAL 2 OR NOT errors MATCHES "at most one font file")
     message(FATAL_ERROR "Conflicting input handling failed (${status}): ${output} ${errors}")
 endif()
+
+execute_process(COMMAND "${APP}" --renderer invalid
+    RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
+if(NOT status EQUAL 2 OR NOT errors MATCHES "--renderer must be qt or freetype")
+    message(FATAL_ERROR "Invalid renderer handling failed (${status}): ${output} ${errors}")
+endif()
