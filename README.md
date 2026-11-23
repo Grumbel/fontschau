@@ -35,12 +35,24 @@ fontschau /path/to/font.ttf
 fontschau --font /path/to/font.otf
 fontschau -f /path/to/font.ttc
 fontschau --renderer freetype --split /path/to/font.ttf
+fontschau /path/to/first.ttf /path/to/second.otf
+fontschau --font /path/to/first.ttf --font /path/to/second.otf
+fontschau --renderer freetype --font /path/to/first.ttf /path/to/second.otf
 ```
 
 You can also use **File → Open Font** (Ctrl+O). Successfully loaded fonts
 are added to the font-family list and selected automatically. An invalid or
 unreadable file supplied on the command line produces an error and nonzero exit
 status. The desktop launcher can open font files via the file manager.
+
+Passing **two font files** automatically opens the split comparison: the first
+font goes directly into **Pane A** (left), and the second into **Pane B**
+(right). You can supply two positional paths, repeat `--font`/`-f`, or combine
+an option with a positional path (option paths come first). Both fonts keep
+their individual source paths, including when the font files have the same
+family name. `--renderer` chooses the initial backend for both panes. Supplying
+more than two font files is an error. A single font still opens one pane unless
+`--split` is specified.
 
 ### Comparing renderers and settings
 

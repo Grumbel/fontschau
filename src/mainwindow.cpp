@@ -229,6 +229,25 @@ void MainWindow::setPrimaryBackend(RenderBackend backend)
 
 bool MainWindow::loadFontFile(const QString &filename, QString *errorMessage)
 {
+    return loadFontFileIntoPane(filename, m_activePane, errorMessage);
+}
+
+bool MainWindow::loadComparisonFonts(const QString &fileA, const QString &fileB,
+                                     QString *errorMessage)
+{
+    setSplitPreview(true);
+    // Do not route these through the selected browser item: both files can
+    // expose the same family name, but their paths must remain independent.
+    if (!loadFontFileIntoPane(fileA, m_paneA, errorMessage) ||
+        !loadFontFileIntoPane(fileB, m_paneB, errorMessage))
+        return false;
+    activatePane(m_paneA);
+    return true;
+}
+
+bool MainWindow::loadFontFileIntoPane(const QString &filename, PreviewPane *pane,
+                                      QString *errorMessage)
+{
     const QFileInfo file(filename);
     if (!file.isFile() || !file.isReadable()) {
         if (errorMessage) *errorMessage = tr("Cannot read font file: %1").arg(filename);
@@ -249,13 +268,11 @@ bool MainWindow::loadFontFile(const QString &filename, QString *errorMessage)
         m_loadedFontFiles.insert(family, file.absoluteFilePath());
     populateFonts();
     m_searchEdit->clear();
-    const auto matchingItems = m_fontList->findItems(families.first(), Qt::MatchExactly);
-    if (!matchingItems.isEmpty()) {
-        m_fontList->setCurrentItem(matchingItems.first());
-        // Selecting a file twice must still assign it to the active pane.
-        onFontSelected(matchingItems.first());
-        m_fontList->scrollToItem(matchingItems.first());
-    }
+    // Assign the actual file, not just the family resolved by the browser.
+    // In particular, compare two files defining the same family correctly.
+    pane->setFontFamily(families.first(), file.absoluteFilePath());
+    if (pane == m_activePane)
+        activatePane(pane); // Synchronize the browser without reassigning the file.
     statusBar()->showMessage(tr("Loaded %1 (%2)")
                                  .arg(file.fileName(), families.join(QStringLiteral(", "))));
     return true;

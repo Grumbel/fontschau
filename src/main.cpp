@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     parser.addVersionOption();
     const QCommandLineOption fontOption(
         {QStringLiteral("f"), QStringLiteral("font")},
-        QStringLiteral("Load a font from a file (TTF, OTF, or collection)."),
+        QStringLiteral("Load a font file (TTF, OTF, or collection); repeat to compare two fonts."),
         QStringLiteral("file"));
     parser.addOption(fontOption);
     const QCommandLineOption rendererOption(
@@ -32,8 +32,8 @@ int main(int argc, char *argv[])
     parser.addOption(splitOption);
     parser.addPositionalArgument(
         QStringLiteral("font-file"),
-        QStringLiteral("Font file to load at startup (alternative to --font)."),
-        QStringLiteral("[font-file]"));
+        QStringLiteral("One or two font files to open. Two files automatically split the preview."),
+        QStringLiteral("[font-file ...]"));
 
     // Handle help/version with QtCore only, so neither requires a display or
     // loading a Qt platform plugin. Only one application object is created.
@@ -61,13 +61,15 @@ int main(int argc, char *argv[])
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/fontschau.svg")));
     parser.process(app);
 
-    const QStringList positional = parser.positionalArguments();
-    if (positional.size() > 1 || (parser.isSet(fontOption) && !positional.isEmpty())) {
-        std::fprintf(stderr, "fontschau: specify at most one font file\n");
+    // --font may be repeated, and positional paths work as before. When two
+    // files are given the first belongs to pane A and the second to pane B.
+    // Mixing forms is supported (option values precede positional arguments).
+    QStringList fontPaths = parser.values(fontOption);
+    fontPaths.append(parser.positionalArguments());
+    if (fontPaths.size() > 2) {
+        std::fprintf(stderr, "fontschau: specify at most two font files\n");
         return 2;
     }
-    const QString fontPath = parser.isSet(fontOption) ? parser.value(fontOption)
-                                                       : positional.value(0);
 
     const QString engine = parser.value(rendererOption).toLower();
     if (engine != QLatin1String("qt") && engine != QLatin1String("freetype")) {
@@ -78,15 +80,20 @@ int main(int argc, char *argv[])
     MainWindow window;
     if (engine == QLatin1String("freetype"))
         window.setPrimaryBackend(RenderBackend::FreeType);
-    if (!fontPath.isEmpty()) {
-        QString error;
-        if (!window.loadFontFile(fontPath, &error)) {
+    QString error;
+    if (fontPaths.size() == 2) {
+        if (!window.loadComparisonFonts(fontPaths.at(0), fontPaths.at(1), &error)) {
             std::fprintf(stderr, "fontschau: %s\n", qPrintable(error));
             return 1;
         }
+    } else {
+        if (fontPaths.size() == 1 && !window.loadFontFile(fontPaths.first(), &error)) {
+            std::fprintf(stderr, "fontschau: %s\n", qPrintable(error));
+            return 1;
+        }
+        if (parser.isSet(splitOption))
+            window.setSplitPreview(true);
     }
-    if (parser.isSet(splitOption))
-        window.setSplitPreview(true);
     window.show();
 
     return app.exec();

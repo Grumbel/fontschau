@@ -6,6 +6,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QFileInfo>
 #include <QGroupBox>
 #include <QListWidget>
 #include <QMouseEvent>
@@ -13,6 +14,8 @@
 #include <QSplitter>
 #include <QSpinBox>
 #include <QTextEdit>
+
+#include <fontconfig/fontconfig.h>
 
 namespace {
 void click(QWidget *widget)
@@ -24,6 +27,46 @@ void click(QWidget *widget)
     QMouseEvent release(QEvent::MouseButtonRelease, pos,
                         Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
     QApplication::sendEvent(widget, &release);
+}
+
+// Find actual installed font files without relying on a distribution-specific
+// directory name. The comparison startup needs two valid paths to test that
+// each pane retains the correct one.
+QStringList comparisonFontFiles(bool sameFamily = false)
+{
+    QStringList result;
+    QString firstFamily;
+    auto *pattern = FcPatternCreate();
+    auto *objects = FcObjectSetBuild(FC_FILE, FC_FAMILY, static_cast<char *>(nullptr));
+    auto *fonts = FcFontList(nullptr, pattern, objects);
+    if (fonts) {
+        for (int i = 0; i < fonts->nfont; ++i) {
+            FcChar8 *file = nullptr;
+            FcChar8 *family = nullptr;
+            if (FcPatternGetString(fonts->fonts[i], FC_FILE, 0, &file) != FcResultMatch ||
+                FcPatternGetString(fonts->fonts[i], FC_FAMILY, 0, &family) != FcResultMatch)
+                continue;
+            const QString path = QString::fromUtf8(reinterpret_cast<const char *>(file));
+            const QString name = QString::fromUtf8(reinterpret_cast<const char *>(family));
+            const QString ext = QFileInfo(path).suffix().toLower();
+            if ((ext != QStringLiteral("ttf") && ext != QStringLiteral("otf") &&
+                 ext != QStringLiteral("ttc") && ext != QStringLiteral("otc")) ||
+                !QFileInfo(path).isReadable())
+                continue;
+            if (result.isEmpty()) {
+                result << path;
+                firstFamily = name;
+            } else if (path != result.first() &&
+                       (sameFamily ? name == firstFamily : name != firstFamily)) {
+                result << path;
+                break;
+            }
+        }
+        FcFontSetDestroy(fonts);
+    }
+    FcObjectSetDestroy(objects);
+    FcPatternDestroy(pattern);
+    return result;
 }
 
 bool previewsAligned(PreviewPane *a, PreviewPane *b, QWidget *window)
@@ -135,5 +178,62 @@ int main(int argc, char **argv)
 
     window.setSplitPreview(false);
     if (splitter->count() != 1 || !a->isActive()) return 8;
+
+    const QStringList fontPaths = comparisonFontFiles();
+    if (fontPaths.size() == 2) {
+        MainWindow compareWindow;
+        compareWindow.setPrimaryBackend(RenderBackend::FreeType);
+        // A two-file load must create a split and target each pane explicitly,
+        // even though creating a split normally makes B the active pane.
+        QString error;
+        if (!compareWindow.loadComparisonFonts(fontPaths.at(0), fontPaths.at(1), &error))
+            return 22;
+        auto *split = compareWindow.findChild<QSplitter *>(QStringLiteral("previewSplitter"));
+        auto *left = compareWindow.findChild<PreviewPane *>(QStringLiteral("paneA"));
+        auto *right = compareWindow.findChild<PreviewPane *>(QStringLiteral("paneB"));
+        if (!split || split->count() != 2 || !left || !right ||
+            left->fontFile() != QFileInfo(fontPaths.at(0)).absoluteFilePath() ||
+            right->fontFile() != QFileInfo(fontPaths.at(1)).absoluteFilePath() ||
+            left->fontFamily().isEmpty() || right->fontFamily().isEmpty() ||
+            !left->isActive() || right->isActive())
+            return 23;
+        auto *leftRenderer = left->findChild<QComboBox *>(QStringLiteral("rendererCombo"));
+        auto *rightRenderer = right->findChild<QComboBox *>(QStringLiteral("rendererCombo"));
+        if (!leftRenderer || !rightRenderer ||
+            leftRenderer->currentText() != QStringLiteral("FreeType") ||
+            rightRenderer->currentText() != QStringLiteral("FreeType"))
+            return 24;
+        compareWindow.show();
+        app.processEvents();
+        if (!previewsAligned(left, right, &compareWindow)) return 25;
+
+        // Re-loading the two files in reverse order must preserve both paths,
+        // rather than accidentally routing both through the active pane.
+        if (!compareWindow.loadComparisonFonts(fontPaths.at(1), fontPaths.at(0), &error) ||
+            left->fontFile() != QFileInfo(fontPaths.at(1)).absoluteFilePath() ||
+            right->fontFile() != QFileInfo(fontPaths.at(0)).absoluteFilePath())
+            return 26;
+        // A normal one-file open still targets the pane selected by a click.
+        click(right->findChild<QWidget *>(QStringLiteral("previewSurface")));
+        if (!compareWindow.loadFontFile(fontPaths.at(1), &error) ||
+            left->fontFile() != QFileInfo(fontPaths.at(1)).absoluteFilePath() ||
+            right->fontFile() != QFileInfo(fontPaths.at(1)).absoluteFilePath())
+            return 27;
+
+        // Regular/bold or differently built files may share a family. Both
+        // panes must keep their own paths even in that case.
+        const QStringList sameFamilyPaths = comparisonFontFiles(true);
+        if (sameFamilyPaths.size() == 2) {
+            if (!compareWindow.loadComparisonFonts(sameFamilyPaths.at(0),
+                                                   sameFamilyPaths.at(1), &error) ||
+                left->fontFile() != QFileInfo(sameFamilyPaths.at(0)).absoluteFilePath() ||
+                right->fontFile() != QFileInfo(sameFamilyPaths.at(1)).absoluteFilePath())
+                return 28;
+        }
+        const QString missing = QStringLiteral("__fontschau_missing_comparison_font__.ttf");
+        if (compareWindow.loadComparisonFonts(fontPaths.at(0), missing, &error) ||
+            !error.contains(missing))
+            return 29;
+    }
     return 0;
 }

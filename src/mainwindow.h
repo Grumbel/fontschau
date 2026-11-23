@@ -22,6 +22,8 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
 
     bool loadFontFile(const QString &filename, QString *errorMessage = nullptr);
+    bool loadComparisonFonts(const QString &fileA, const QString &fileB,
+                             QString *errorMessage = nullptr);
     void setSplitPreview(bool split);
     void setPrimaryBackend(RenderBackend backend);
 
@@ -32,6 +34,8 @@ private:
     void onFontSelected(QListWidgetItem *item);
     void activatePane(PreviewPane *pane);
     void alignPanePreviews();
+    bool loadFontFileIntoPane(const QString &filename, PreviewPane *pane,
+                              QString *errorMessage);
     void openFontFile();
     void about();
 
